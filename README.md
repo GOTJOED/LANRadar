@@ -20,6 +20,7 @@
 Before running the server scripts, ensure **Nmap** and **Python 3.8+** are installed on your host system.
 
 ### 1. Install System Dependencies
+* **Linux (Ubuntu / Debian)**
 Run in Terminal:
   ```bash
   sudo apt update && sudo apt install nmap python3-venv python3-pip -y
