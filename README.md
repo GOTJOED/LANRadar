@@ -68,11 +68,23 @@ Once the software prerequisites and wheel packages are in place, you do not need
 * **Via PowerShell or Command Prompt:**
   ```powershell
   .\run.bat
+  ```
 
 ### Running on Linux
 * **Via Terminal**
 ```bash
   chmod +x run.sh
-./run.sh
+  ./run.sh
+  ```
 
-  
+### Repository Structure
+```
+NETSCANNER/
+├── backend/      # Python API server and Nmap scanning logic
+├── frontend/     # Web UI dashboard (HTML, CSS, JS)
+├── Linux/        # Linux wheel dependencies
+├── Windows/      # Windows wheel dependencies
+├── run.bat       # Windows automated launcher script
+├── run.sh        # Linux automated launcher script
+└── README.md     # Documentation
+```
