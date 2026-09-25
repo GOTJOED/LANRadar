@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETSCAN Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow glow-cyan"></div>
+    <div class="bg-glow glow-magenta"></div>
+    <div class="scanline-overlay"></div>
+
+    <div class="top-nav">
+        <div class="logo">
+            <span class="status-dot"><span class="dot-ping"></span></span>
+            <span class="logo-text">GOT JOED</span>
+            <span class="live-tag">nmap_engine</span>
+        </div>
+        <div class="nav-right">
+            <button id="refresh-btn" class="btn-refresh" title="Refresh page">
+                ↻ REFRESH
+            </button>
+            <button id="repull-btn" class="btn-repull" title="Re-pull DB: refresh history + queue from scanner.db">
+                ⟳ RE-PULL
+            </button>
+            <button id="queue-toggle-btn" class="btn-queue">
+                <span class="queue-icon">≡</span>
+                QUEUE: <span id="queue-count">0 TASKS</span>
+                <span class="queue-pulse"></span>
+            </button>
+        </div>
+    </div>
+
+    <div id="queue-dropdown" class="queue-dropdown">
+        <div class="panel-header">
+            <h3>SCAN QUEUE</h3>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <button id="clear-done-btn" class="btn-action" title="Clear DONE/ERROR/CANCELLED">[CLEAR DONE]</button>
+                <button id="clear-all-btn" class="btn-action btn-delete" title="Clear entire queue">[CLEAR ALL]</button>
+                <button id="close-queue-btn" class="btn-icon">[X]</button>
+            </div>
+        </div>
+        <div id="queue-list" class="history-scroll">
+            <p class="placeholder-text">No active scan tasks.</p>
+        </div>
+        <div class="queue-footer">
+            <span class="queue-hint">Quick: -T4 -F | Intense: -T4 -A -v | Comprehensive: -sS -sU -T4 -A -v -PE -PP ... on live only. No timeout. RE-SCAN ALL / NEW with type selector.</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="control-panel">
+            <div class="input-wrapper">
+                <span class="input-prefix">>_</span>
+                <input type="text" id="target-ip" placeholder="Enter IP or Subnet (e.g. 192.168.1.1, 10.0.0.1/24)">
+                <div class="input-glow"></div>
+            </div>
+            <div class="scan-type-wrapper">
+                <label for="scan-type-select" class="scan-type-label">Select Scan Type</label>
+                <select id="scan-type-select" class="scan-type-select">
+                    <option value="quick">Quick Scan — nmap -T4 -F</option>
+                    <option value="intense" selected>Intense Scan — nmap -T4 -A -v</option>
+                    <option value="comprehensive">Comprehensive Scan — nmap -sS -sU -T4 ...</option>
+                </select>
+            </div>
+            <button id="scan-btn">
+                <span class="btn-text">INITIATE SCAN</span>
+                <span class="btn-shine"></span>
+            </button>
+        </div>
+
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-item"><span class="stat-label">TOTAL</span><span class="stat-value" id="stat-total">0</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat-item"><span class="stat-label">ONLINE</span><span class="stat-value online" id="stat-online">0</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat-item"><span class="stat-label">OFFLINE</span><span class="stat-value offline" id="stat-offline">0</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat-item"><span class="stat-label">OPEN_PORTS</span><span class="stat-value ports" id="stat-ports">0</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat-item"><span class="stat-label">LATENCY</span><span class="stat-value latency" id="stat-latency">--</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat-item"><span class="stat-label">DB</span><span class="stat-value" id="stat-db" style="color:var(--text-dim)">--</span></div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="panel history-panel">
+                <div class="panel-header">
+                    <h3>SCAN GROUP</h3>
+                    <span class="badge-count" id="history-count">0 SAVED</span>
+                </div>
+                <div class="history-filter">
+                    <input type="text" id="history-filter-input" placeholder="FILTER..." autocomplete="off">
+                </div>
+                <div id="history-list" class="history-scroll">
+                    <p class="placeholder-text">No saved scans found.</p>
+                </div>
+            </div>
+            
+            <div class="panel results-panel">
+                <div class="panel-header">
+                    <h3 id="active-hosts-title">ACTIVE_HOSTS & RESULT</h3>
+                    <span class="badge-count" id="hosts-count">0 DISCOVERED</span>
+                </div>
+                <div class="history-filter" style="margin-bottom:10px; display:flex; gap:8px; align-items:center;">
+                    <input type="text" id="results-filter-input" placeholder="FILTER by IP, OS, port, service... (e.g. 80, Windows, CONNECTED)" autocomplete="off" style="flex:1;">
+                    <select id="results-status-filter" class="scan-type-select" style="min-width:140px; max-width:160px;">
+                        <option value="connected" selected>Connected</option>
+                        <option value="all">All</option>
+                        <option value="disconnected">Disconnected</option>
+                    </select>
+                </div>
+                <div id="results-grid" class="cards-grid">
+                    <div class="empty-state">
+                        <div class="empty-icon">◉</div>
+                        <p class="placeholder-text">System standing by — Select scan type then INITIATE SCAN...</p>
+                        <span class="empty-hint">Ping-first → Deep intense on live only, no timeout. Filter searches all fields incl. CONNECTED/DISCONNECTED.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="host-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title" id="modal-ip">> --</span>
+                <span class="host-type" id="modal-type">--</span>
+                <button class="btn-icon" id="close-modal-btn">[X]</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="desc-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width:560px;">
+            <div class="modal-header">
+                <span class="modal-title" id="desc-modal-title">DESCRIPTION</span>
+                <button class="btn-icon" id="close-desc-modal-btn">[X]</button>
+            </div>
+            <div class="modal-body" id="desc-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- ADD IP Modal -->
+    <div id="add-ip-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width:520px;">
+            <div class="modal-header">
+                <span class="modal-title" id="add-ip-title">ADD IP TO GROUP</span>
+                <button class="btn-icon" id="close-add-ip-btn">[X]</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:8px; color:var(--text-dim); font-size:0.68rem">Add new IPs to this group (supports: 192.168.1.1, /24, 1-15, 50-100, comma/space)</div>
+                <textarea id="add-ip-textarea" class="desc-textarea" placeholder="e.g. 10.10.10.200, 10.10.10.210-220, 192.168.1.0/28"></textarea>
+                <div class="scan-type-wrapper" style="margin-top:12px; margin-bottom:12px;">
+                    <label class="scan-type-label">Scan Type</label>
+                    <select id="add-ip-scan-type" class="scan-type-select">
+                        <option value="quick">Quick Scan — nmap -T4 -F</option>
+                        <option value="intense" selected>Intense Scan — nmap -T4 -A -v</option>
+                        <option value="comprehensive">Comprehensive Scan — nmap -sS -sU -T4 -A -v -PE -PP -PS80,443 -PA3389 -PU40125 -PY -g 53 --script</option>
+                    </select>
+                </div>
+                <div style="margin-top:10px; display:flex; gap:6px;">
+                    <button class="btn-action" style="border-color:var(--neon-green); color:var(--neon-green)" id="save-add-ip-btn">[ADD TO GROUP]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- RESCAN TYPE SELECT Modal - CLEAN -->
+    <div id="rescan-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width:520px;">
+            <div class="modal-header" style="justify-content:space-between;">
+                <span class="modal-title" id="rescan-modal-title">SELECT SCAN TYPE</span>
+                <button class="btn-icon" id="close-rescan-btn" style="margin-left:auto;">[X]</button>
+            </div>
+            <div class="modal-body">
+                <div id="rescan-modal-desc" style="margin-bottom:10px; color:var(--text-dim); font-size:0.68rem">Choose scan type for this re-scan</div>
+                <div class="scan-type-wrapper" style="margin-bottom:12px;">
+                    <label class="scan-type-label">Scan Type</label>
+                    <select id="rescan-type-select" class="scan-type-select">
+                        <option value="quick">Quick Scan — nmap -T4 -F</option>
+                        <option value="intense" selected>Intense Scan — nmap -T4 -A -v</option>
+                        <option value="comprehensive">Comprehensive Scan — nmap -sS -sU -T4 -A -v -PE -PP -PS80,443 -PA3389 -PU40125 -PY -g 53 --script</option>
+                    </select>
+                </div>
+                <div style="margin-top:12px; display:flex; gap:8px;">
+                    <button class="btn-action" style="border-color:var(--neon-cyan); color:var(--neon-cyan)" id="confirm-rescan-btn">[CONFIRM RE-SCAN]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NMAP CRASH Modal (was referenced but missing) -->
+    <div id="nmap-crash-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width:520px;">
+            <div class="modal-header">
+                <span class="modal-title">NMAP ERROR DETECTED</span>
+                <button class="btn-icon" id="close-crash-btn">[X]</button>
+            </div>
+            <div class="modal-body">
+                <div style="color:var(--neon-red); font-size:0.72rem; margin-bottom:8px;">An nmap task failed. Check queue for ERROR details.</div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-action" style="border-color:var(--neon-green); color:var(--neon-green)" id="nmap-reload-btn">[RELOAD NMAP]</button>
+                    <button class="btn-action btn-delete" id="crash-close-btn">[CLOSE]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
