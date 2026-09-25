@@ -1,6 +1,6 @@
 # LANRadar
 
-**NETSCANNER** is a lightweight, cross-platform network discovery and monitoring server interface. Powered by an Nmap API backend, it enables real-time host discovery, ping testing, open port detection, and scan queue management through a dark-mode web dashboard.
+a lightweight, cross-platform network discovery and monitoring server interface. Powered by an Nmap API backend, it enables real-time host discovery, ping testing, open port detection, and scan queue management through a dark-mode web dashboard.
 
 ---
 ## Preview
