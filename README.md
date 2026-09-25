@@ -86,5 +86,4 @@ NETSCANNER/
 ├── Windows/      # Windows wheel dependencies
 ├── run.bat       # Windows automated launcher script
 ├── run.sh        # Linux automated launcher script
-└── README.md     # Documentation
 ```
